@@ -1,0 +1,3 @@
+DROP DATABASE IF EXISTS GameVault;
+CREATE DATABASE GameVault;
+USE GameVault;
