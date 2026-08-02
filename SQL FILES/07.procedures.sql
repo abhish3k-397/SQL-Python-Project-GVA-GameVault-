@@ -1,5 +1,5 @@
 -- Procedure 1 Buying a Game
-DELIMITTER $$
+DELIMITER $$
 
 CREATE PROCEDURE PurchaseGame(
     IN p_UserID INT,
@@ -15,7 +15,7 @@ BEGIN
     FROM Library WHERE UserID = p_UserID AND GameID = p_GameID;
 
     IF v_AlreadyOwned > 0 THEN 
-        SET SQLSTATE '45000' SET MESSAGE_TEXT 'You already own the Game';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'You already own the Game';
     END IF;
 
     SET v_Price = CalculateDiscountPrice(p_GameID);
@@ -56,11 +56,11 @@ BEGIN
     END IF;
 
     IF p_PublisherName IS NOT NULL THEN
-        SELECT PublisherID into v_PublisherID
-        FROM Publishers WHERE PublsherName = p_PublisherName LIMIT 1;
+        SELECT PublisherID INTO v_PublisherID
+        FROM Publishers WHERE PublisherName = p_PublisherName LIMIT 1;
 
         IF v_PublisherID IS NULL THEN
-            INSERT INTO Publisehrs (PublisherName) VALUES (p_PublisherName);
+            INSERT INTO Publishers (PublisherName) VALUES (p_PublisherName);
             SET v_PublisherID = LAST_INSERT_ID();
         END IF;
     END IF;

@@ -31,7 +31,7 @@ GROUP BY g.GameID, g.Title;
 CREATE VIEW UserLibrary AS
 SELECT
 	u.UserID,
-    u.UserName,
+    u.Username,
     g.GameID,
     g.Title AS GameTitle,
     l.PurchaseDate,
@@ -46,7 +46,7 @@ JOIN Games g ON l.GameID = g.GameID;
 CREATE VIEW PurchaseHistory AS
 SELECT
 	u.UserID,
-    u.UserName,
+    u.Username,
     o.OrderID,
     o.OrderDate,
     g.GameID,
@@ -62,8 +62,8 @@ JOIN Games g ON oi.GameID = g.GameID;
 CREATE VIEW TopSellingGames AS
 SELECT
 	g.GameID,
-	g.GameTitle,
-	COUNT(oi.OrdeItemID) AS CopiesSold
+	g.Title AS GameTitle,
+	COUNT(oi.OrderItemID) AS CopiesSold
 FROM Games g
 JOIN Order_Items oi ON g.GameID = oi.GameID
 GROUP BY g.GameID, g.Title
@@ -78,8 +78,9 @@ SELECT
     ROUND(SUM(oi.PurchasePrice),2) AS TotalRevenue
 FROM Developers d
 JOIN Games g ON d.DeveloperID = g.DeveloperID
-JOIN Order_Items ON g.GameID = oi.GameID
-ORDER BY d.DeveloperID , d.DeveloperName;
+JOIN Order_Items oi ON g.GameID = oi.GameID
+GROUP BY d.DeveloperID, d.DeveloperName
+ORDER BY d.DeveloperID, d.DeveloperName;
 
 
 -- View 7 The Wishlist

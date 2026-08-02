@@ -1,0 +1,2 @@
+# Dependencies for GameVault Python-SQL Application
+mysql-connector-python>=8.0.0

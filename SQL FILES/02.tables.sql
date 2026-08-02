@@ -18,7 +18,7 @@ CREATE TABLE Developers(
     Country VARCHAR(50),
     FoundedYear SMALLINT,
     Website VARCHAR(150),
-    CONSTRAINT chk_founded_year CHECK (FoundedYear <= YEAR(CURRENT_DATE()))
+    CONSTRAINT chk_founded_year CHECK (FoundedYear >= 1900)
 );
 -- TABLE 3
 CREATE TABLE Publishers(
