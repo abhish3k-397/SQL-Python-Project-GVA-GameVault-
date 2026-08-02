@@ -85,4 +85,65 @@ END$$
 
 -- Procedure 4: Search Games by Genere Name 
 
-CREATE PROCEDURE SearchGamebyGenere
+CREATE PROCEDURE SearchGamebyGenere(IN p_GenreName VARCHAR(50))
+
+BEGIN
+    SELECT g.GameID, g.Title, g.Price, g.ReleaseDate 
+    FROM Games g
+    JOIN Game_Genres gg ON g.GameID = gg.GameID
+    JOIN Genres gn ON gg.GenreID = gn.GenreID
+    WHERE gn.GenreName = p_GenreName;
+END$$
+
+-- 5. Full purchase history for one user
+CREATE PROCEDURE UserPurchaseHistory(IN p_UserID INT)
+BEGIN
+    SELECT o.OrderID, g.Title, oi.PurchasePrice, o.OrderDate
+    FROM Orders o
+    JOIN Order_Items oi ON o.OrderID = oi.OrderID
+    JOIN Games g ON oi.GameID = g.GameID
+    WHERE o.UserID = p_UserID
+    ORDER BY o.OrderDate DESC;
+END$$
+
+-- 6. Top 10 best-selling games
+CREATE PROCEDURE GetTopSellingGames()
+BEGIN
+    SELECT g.GameID, g.Title, COUNT(oi.OrderItemID) AS CopiesSold
+    FROM Games g
+    JOIN Order_Items oi ON g.GameID = oi.GameID
+    GROUP BY g.GameID, g.Title
+    ORDER BY CopiesSold DESC
+    LIMIT 10;
+END$$
+
+-- 7. Every game a user owns
+CREATE PROCEDURE GetUserLibrary(IN p_UserID INT)
+BEGIN
+    SELECT g.GameID, g.Title, l.PurchaseDate, l.HoursPlayed
+    FROM Library l
+    JOIN Games g ON l.GameID = g.GameID
+    WHERE l.UserID = p_UserID;
+END$$
+
+-- 8. Full detail card for one game
+CREATE PROCEDURE GetGameDetails(IN p_GameID INT)
+BEGIN
+    SELECT
+        g.GameID,
+        g.Title,
+        dev.DeveloperName,
+        pub.PublisherName,
+        GROUP_CONCAT(DISTINCT gn.GenreName SEPARATOR ', ') AS Genres,
+        AverageRating(g.GameID) AS AverageRating,
+        CalculateDiscountPrice(g.GameID) AS CurrentPrice
+    FROM Games g
+    LEFT JOIN Developers dev ON g.DeveloperID = dev.DeveloperID
+    LEFT JOIN Publishers pub ON g.PublisherID = pub.PublisherID
+    LEFT JOIN Game_Genres gg ON g.GameID = gg.GameID
+    LEFT JOIN Genres gn ON gg.GenreID = gn.GenreID
+    WHERE g.GameID = p_GameID
+    GROUP BY g.GameID, g.Title, dev.DeveloperName, pub.PublisherName;
+END$$
+
+DELIMITER ;
