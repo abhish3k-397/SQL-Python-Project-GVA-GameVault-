@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://YOUR-RENDER-APP.onrender.com/api/:path*"
+      "destination": "https://sql-python-project-gva-gamevault.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
