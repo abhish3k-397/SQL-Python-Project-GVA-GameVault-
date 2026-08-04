@@ -679,6 +679,7 @@ def run_import():
 
             inserted_count += 1
 
+        cursor.execute("COMMIT;")
         print(f"🎉 Successfully inserted {inserted_count} AAA & Indie titles into MariaDB GameVault!")
 
 if __name__ == '__main__':

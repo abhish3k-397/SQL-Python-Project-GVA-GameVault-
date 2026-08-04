@@ -100,6 +100,7 @@ def update_images():
             updated_count += 1
             print(f"Updated Game {gid} '{title}' -> {steam_url}")
 
+        cursor.execute("COMMIT;")
         print(f"\n🎉 Successfully updated {updated_count} games with official Steam CDN header images!")
 
 if __name__ == '__main__':
