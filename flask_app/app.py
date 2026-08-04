@@ -75,7 +75,7 @@ def login():
             user = cursor.fetchone()
 
             if not user:
-                return jsonify({"error": "User not found in MariaDB"}), 404
+                return jsonify({"error": "User not found in MariaDB database"}), 404
 
             user_dict = clean_row(user)
             stored_pass = user_dict['PasswordHash']
@@ -87,7 +87,7 @@ def login():
                 return jsonify({
                     "message": "Login successful",
                     "user": {
-                        "user_id": user_dict['UserID'],
+                        "user_id": int(user_dict['UserID']),
                         "username": user_dict['Username'],
                         "email": user_dict['Email'],
                         "country": user_dict.get('Country', 'Global'),
@@ -98,7 +98,7 @@ def login():
 
             return jsonify({"error": "Incorrect password"}), 401
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"MariaDB authentication error: {str(e)}"}), 500
 
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -116,16 +116,27 @@ def register():
 
     try:
         with DatabaseConnection() as cursor:
+            # Check if username or email already exists
+            cursor.execute("SELECT UserID FROM Users WHERE Username = %s OR Email = %s", (username, email))
+            existing = cursor.fetchone()
+            if existing:
+                return jsonify({"error": "Username or Email already registered in GameVault"}), 400
+
+            # Insert new user into MariaDB Users table
             cursor.execute(
                 "INSERT INTO Users (Username, Email, PasswordHash, Country, WalletBalance) VALUES (%s, %s, %s, %s, 500.00)",
                 (username, email, pw_hash, country)
             )
-            user_id = cursor.lastrowid
+            
+            # Retrieve the newly generated UserID reliably
+            cursor.execute("SELECT LAST_INSERT_ID() AS user_id;")
+            row = cursor.fetchone()
+            user_id = row['user_id'] if (row and row.get('user_id')) else cursor.lastrowid
 
             return jsonify({
                 "message": "Registration successful! Welcome bonus ₹500 added.",
                 "user": {
-                    "user_id": user_id,
+                    "user_id": int(user_id),
                     "username": username,
                     "email": email,
                     "country": country,
@@ -134,7 +145,7 @@ def register():
                 }
             }), 201
     except Exception as e:
-        return jsonify({"error": f"Registration error: {str(e)}"}), 400
+        return jsonify({"error": f"Registration failed in MariaDB: {str(e)}"}), 400
 
 
 # GAMES CATALOG
@@ -421,12 +432,17 @@ def checkout():
 
     try:
         with DatabaseConnection() as cursor:
-            # Calculate total price
+            # 1. Ensure user exists in MariaDB Users table
+            cursor.execute("SELECT WalletBalance FROM Users WHERE UserID = %s", (user_id,))
+            u_row = cursor.fetchone()
+            if not u_row:
+                return jsonify({"error": f"User ID {user_id} not found in MariaDB Users table. Please sign in or register."}), 400
+
+            # 2. Calculate total price and check ownership
             total_amount = 0.0
             items_to_buy = []
 
             for gid in game_ids:
-                # Check if already owned
                 cursor.execute("SELECT COUNT(*) AS owned FROM Library WHERE UserID = %s AND GameID = %s", (user_id, gid))
                 res = cursor.fetchone()
                 if res and res["owned"] > 0:
@@ -446,35 +462,33 @@ def checkout():
                     total_amount += final
                     items_to_buy.append((gid, final))
 
-            # Check Wallet balance if paying with Wallet
+            # 3. Check Wallet balance if paying with Wallet
             if payment_method == 'Wallet':
-                cursor.execute("SELECT WalletBalance FROM Users WHERE UserID = %s", (user_id,))
-                u_row = cursor.fetchone()
-                if not u_row:
-                    return jsonify({"error": "User record not found in MariaDB"}), 404
-
                 balance = float(u_row['WalletBalance'])
                 if balance < total_amount:
                     return jsonify({"error": f"Insufficient wallet balance! Needed: ₹{total_amount:.2f}, Available: ₹{balance:.2f}"}), 400
 
-                # Deduct wallet
+                # Deduct wallet balance
                 new_balance = balance - total_amount
                 cursor.execute("UPDATE Users SET WalletBalance = %s WHERE UserID = %s", (new_balance, user_id))
 
-            # Create Order
+            # 4. Create Order in MariaDB Orders table
             cursor.execute(
                 "INSERT INTO Orders (UserID, TotalAmount, PaymentMethod, Status) VALUES (%s, %s, %s, 'Completed')",
                 (user_id, total_amount, payment_method)
             )
-            order_id = cursor.lastrowid
+            
+            cursor.execute("SELECT LAST_INSERT_ID() AS order_id;")
+            o_row = cursor.fetchone()
+            order_id = o_row['order_id'] if (o_row and o_row.get('order_id')) else cursor.lastrowid
 
-            # Insert Order Items & Add to Library
+            # 5. Insert Order Items & Add to Library
             for gid, price in items_to_buy:
                 cursor.execute("INSERT INTO Order_Items (OrderID, GameID, PurchasePrice) VALUES (%s, %s, %s)", (order_id, gid, price))
                 cursor.execute("INSERT IGNORE INTO Library (UserID, GameID) VALUES (%s, %s)", (user_id, gid))
                 cursor.execute("DELETE FROM Wishlist WHERE UserID = %s AND GameID = %s", (user_id, gid))
 
-            # Get updated balance
+            # 6. Fetch updated wallet balance
             cursor.execute("SELECT WalletBalance FROM Users WHERE UserID = %s", (user_id,))
             final_user_row = cursor.fetchone()
             updated_balance = float(final_user_row['WalletBalance']) if final_user_row else 0.0
@@ -604,7 +618,9 @@ def add_game():
                 "INSERT INTO Games (Title, DeveloperID, PublisherID, Price, Description, AgeRating, CoverImage) VALUES (%s, %s, %s, %s, %s, %s, %s)",
                 (title, developer_id, publisher_id, price, description, age_rating, cover_image)
             )
-            game_id = cursor.lastrowid
+            cursor.execute("SELECT LAST_INSERT_ID() AS game_id;")
+            row = cursor.fetchone()
+            game_id = row['game_id'] if (row and row.get('game_id')) else cursor.lastrowid
             return jsonify({"message": "Game added successfully to MariaDB", "game_id": game_id}), 201
     except Exception as e:
         return jsonify({"error": f"MariaDB error: {str(e)}"}), 500

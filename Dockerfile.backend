@@ -1,0 +1,27 @@
+# Dockerfile for GameVault Python Flask API Backend
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libmariadb-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and install python packages
+COPY requirements_flask.txt requirements.txt ./
+RUN pip install --no-cache-dir -r requirements_flask.txt
+RUN pip install --no-cache-dir pymysql mysql-connector-python
+
+# Copy application source code
+COPY . .
+
+# Expose Flask API port
+EXPOSE 5000
+
+ENV FLASK_APP=flask_app/app.py
+ENV PYTHONUNBUFFERED=1
+
+# Command to run Flask app
+CMD ["python", "flask_app/app.py"]

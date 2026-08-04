@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # 1. MariaDB Database Container
+  mariadb:
+    image: mariadb:10.11
+    container_name: gamevault_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: gamevault_root_pass
+      MYSQL_DATABASE: GameVault
+      MYSQL_USER: gamevault_user
+      MYSQL_PASSWORD: gamevault123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ./"SQL FILES":/docker-entrypoint-initdb.d
+    networks:
+      - gamevault_net
+
+  # 2. Python Flask REST API Backend Container
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: gamevault_api
+    restart: always
+    environment:
+      DB_HOST: mariadb
+      DB_USER: gamevault_user
+      DB_PASSWORD: gamevault123
+      DB_NAME: GameVault
+      DB_PORT: 3306
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mariadb
+    networks:
+      - gamevault_net
+
+  # 3. React + Bun + Vite Frontend Container (Nginx)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gamevault_ui
+    restart: always
+    ports:
+      - "80:80"
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - gamevault_net
+
+networks:
+  gamevault_net:
+    driver: bridge
+
+volumes:
+  mariadb_data:

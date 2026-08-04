@@ -67,3 +67,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Docker
+mariadb_data/
+.docker/
