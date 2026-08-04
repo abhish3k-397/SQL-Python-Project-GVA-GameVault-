@@ -51,9 +51,14 @@ export default function App() {
 
       const res = await fetch(`/api/games?${query.toString()}`);
       const data = await res.json();
-      setGames(data);
+      if (Array.isArray(data)) {
+        setGames(data);
+      } else {
+        setGames([]);
+      }
     } catch (err) {
       console.error('Error fetching games:', err);
+      setGames([]);
     }
   };
 

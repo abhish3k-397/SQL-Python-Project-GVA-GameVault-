@@ -1,6 +1,6 @@
 """
 GameVault Flask REST API Server
-Directly powered by MariaDB MySQL Database (using database.py DatabaseConnection)
+Directly powered by MariaDB / MySQL / TiDB Database (using database.py DatabaseConnection)
 """
 
 import os
@@ -75,7 +75,7 @@ def login():
             user = cursor.fetchone()
 
             if not user:
-                return jsonify({"error": "User not found in MariaDB database"}), 404
+                return jsonify({"error": "User not found in database"}), 404
 
             user_dict = clean_row(user)
             stored_pass = user_dict['PasswordHash']
@@ -98,7 +98,7 @@ def login():
 
             return jsonify({"error": "Incorrect password"}), 401
     except Exception as e:
-        return jsonify({"error": f"MariaDB authentication error: {str(e)}"}), 500
+        return jsonify({"error": f"Authentication error: {str(e)}"}), 500
 
 
 @app.route('/api/auth/register', methods=['POST'])
@@ -122,7 +122,7 @@ def register():
             if existing:
                 return jsonify({"error": "Username or Email already registered in GameVault"}), 400
 
-            # Insert new user into MariaDB Users table
+            # Insert new user into Users table
             cursor.execute(
                 "INSERT INTO Users (Username, Email, PasswordHash, Country, WalletBalance) VALUES (%s, %s, %s, %s, 500.00)",
                 (username, email, pw_hash, country)
@@ -145,7 +145,7 @@ def register():
                 }
             }), 201
     except Exception as e:
-        return jsonify({"error": f"Registration failed in MariaDB: {str(e)}"}), 400
+        return jsonify({"error": f"Registration failed: {str(e)}"}), 400
 
 
 # GAMES CATALOG
@@ -159,11 +159,18 @@ def get_games():
         with DatabaseConnection() as cursor:
             query = """
             SELECT 
-                g.GameID, g.Title, g.Price, g.ReleaseDate, g.Description, g.AgeRating, g.CoverImage,
-                d.DeveloperName, p.PublisherName,
-                IFNULL(disc.DiscountPercent, 0) AS DiscountPercent,
+                g.GameID,
+                MAX(g.Title) AS Title,
+                MAX(g.Price) AS Price,
+                MAX(g.ReleaseDate) AS ReleaseDate,
+                MAX(g.Description) AS Description,
+                MAX(g.AgeRating) AS AgeRating,
+                MAX(g.CoverImage) AS CoverImage,
+                MAX(d.DeveloperName) AS DeveloperName,
+                MAX(p.PublisherName) AS PublisherName,
+                MAX(IFNULL(disc.DiscountPercent, 0)) AS DiscountPercent,
                 ROUND(IFNULL(AVG(r.Rating), 4.5), 1) AS AvgRating,
-                COUNT(r.ReviewID) AS ReviewCount,
+                COUNT(DISTINCT r.ReviewID) AS ReviewCount,
                 GROUP_CONCAT(DISTINCT gn.GenreName SEPARATOR ', ') AS Genres
             FROM Games g
             LEFT JOIN Developers d ON g.DeveloperID = d.DeveloperID
@@ -187,9 +194,9 @@ def get_games():
             query += " GROUP BY g.GameID"
 
             if sort_by == 'price_low':
-                query += " ORDER BY g.Price ASC"
+                query += " ORDER BY Price ASC"
             elif sort_by == 'price_high':
-                query += " ORDER BY g.Price DESC"
+                query += " ORDER BY Price DESC"
             elif sort_by == 'rating':
                 query += " ORDER BY AvgRating DESC"
             else:
@@ -223,7 +230,7 @@ def get_games():
 
             return jsonify(games_list)
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database query error: {str(e)}"}), 500
 
 
 @app.route('/api/games/<int:game_id>', methods=['GET'])
@@ -232,11 +239,18 @@ def get_game(game_id):
         with DatabaseConnection() as cursor:
             cursor.execute("""
             SELECT 
-                g.GameID, g.Title, g.Price, g.ReleaseDate, g.Description, g.AgeRating, g.CoverImage,
-                d.DeveloperName, p.PublisherName,
-                IFNULL(disc.DiscountPercent, 0) AS DiscountPercent,
+                g.GameID,
+                MAX(g.Title) AS Title,
+                MAX(g.Price) AS Price,
+                MAX(g.ReleaseDate) AS ReleaseDate,
+                MAX(g.Description) AS Description,
+                MAX(g.AgeRating) AS AgeRating,
+                MAX(g.CoverImage) AS CoverImage,
+                MAX(d.DeveloperName) AS DeveloperName,
+                MAX(p.PublisherName) AS PublisherName,
+                MAX(IFNULL(disc.DiscountPercent, 0)) AS DiscountPercent,
                 ROUND(IFNULL(AVG(r.Rating), 4.5), 1) AS AvgRating,
-                COUNT(r.ReviewID) AS ReviewCount,
+                COUNT(DISTINCT r.ReviewID) AS ReviewCount,
                 GROUP_CONCAT(DISTINCT gn.GenreName SEPARATOR ', ') AS Genres
             FROM Games g
             LEFT JOIN Developers d ON g.DeveloperID = d.DeveloperID
@@ -285,7 +299,7 @@ def get_game(game_id):
                 "reviews": reviews
             })
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database query error: {str(e)}"}), 500
 
 
 @app.route('/api/genres', methods=['GET'])
@@ -296,7 +310,7 @@ def get_genres():
             rows = clean_rows(cursor.fetchall())
             return jsonify([{"genre_id": r['GenreID'], "name": r['GenreName']} for r in rows])
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 # USER LIBRARY & WISHLIST & CART & WALLET
@@ -330,7 +344,7 @@ def get_library():
                 })
             return jsonify(library)
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route('/api/user/library/play', methods=['POST'])
@@ -351,7 +365,7 @@ def update_hours():
             )
             return jsonify({"message": f"Added {added_hours} hours played."})
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route('/api/user/wishlist', methods=['GET', 'POST', 'DELETE'])
@@ -388,7 +402,7 @@ def handle_wishlist():
                     })
                 return jsonify(wishlist)
         except Exception as e:
-            return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
 
     elif request.method == 'POST':
         data = request.json or {}
@@ -417,7 +431,7 @@ def handle_wishlist():
                 cursor.execute("DELETE FROM Wishlist WHERE UserID = %s AND GameID = %s", (user_id, game_id))
                 return jsonify({"message": "Removed from wishlist"})
         except Exception as e:
-            return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+            return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route('/api/user/checkout', methods=['POST'])
@@ -432,11 +446,11 @@ def checkout():
 
     try:
         with DatabaseConnection() as cursor:
-            # 1. Ensure user exists in MariaDB Users table
+            # 1. Ensure user exists in Users table
             cursor.execute("SELECT WalletBalance FROM Users WHERE UserID = %s", (user_id,))
             u_row = cursor.fetchone()
             if not u_row:
-                return jsonify({"error": f"User ID {user_id} not found in MariaDB Users table. Please sign in or register."}), 400
+                return jsonify({"error": f"User ID {user_id} not found in database. Please sign in or register."}), 400
 
             # 2. Calculate total price and check ownership
             total_amount = 0.0
@@ -472,7 +486,7 @@ def checkout():
                 new_balance = balance - total_amount
                 cursor.execute("UPDATE Users SET WalletBalance = %s WHERE UserID = %s", (new_balance, user_id))
 
-            # 4. Create Order in MariaDB Orders table
+            # 4. Create Order
             cursor.execute(
                 "INSERT INTO Orders (UserID, TotalAmount, PaymentMethod, Status) VALUES (%s, %s, %s, 'Completed')",
                 (user_id, total_amount, payment_method)
@@ -494,13 +508,13 @@ def checkout():
             updated_balance = float(final_user_row['WalletBalance']) if final_user_row else 0.0
 
             return jsonify({
-                "message": "Purchase successful! Games added to your MariaDB library.",
+                "message": "Purchase successful! Games added to your library.",
                 "order_id": order_id,
                 "total_paid": total_amount,
                 "updated_wallet_balance": updated_balance
             })
     except Exception as e:
-        return jsonify({"error": f"MariaDB checkout error: {str(e)}"}), 500
+        return jsonify({"error": f"Checkout error: {str(e)}"}), 500
 
 
 @app.route('/api/user/wallet/deposit', methods=['POST'])
@@ -524,7 +538,7 @@ def deposit_wallet():
                 "updated_wallet_balance": new_bal
             })
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route('/api/reviews', methods=['POST'])
@@ -552,7 +566,7 @@ def add_review():
             )
             return jsonify({"message": "Review submitted successfully!"})
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 400
+        return jsonify({"error": f"Database error: {str(e)}"}), 400
 
 
 # ADMIN ENDPOINTS
@@ -572,7 +586,7 @@ def get_admin_stats():
             total_revenue = float(order_row["revenue"])
 
             cursor.execute("""
-            SELECT g.Title, COUNT(oi.OrderItemID) AS SalesCount, SUM(oi.PurchasePrice) AS Revenue
+            SELECT MAX(g.Title) AS Title, COUNT(oi.OrderItemID) AS SalesCount, SUM(oi.PurchasePrice) AS Revenue
             FROM Order_Items oi
             JOIN Games g ON oi.GameID = g.GameID
             GROUP BY g.GameID
@@ -595,7 +609,7 @@ def get_admin_stats():
                 "top_games": top_games
             })
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route('/api/admin/games', methods=['POST'])
@@ -621,11 +635,11 @@ def add_game():
             cursor.execute("SELECT LAST_INSERT_ID() AS game_id;")
             row = cursor.fetchone()
             game_id = row['game_id'] if (row and row.get('game_id')) else cursor.lastrowid
-            return jsonify({"message": "Game added successfully to MariaDB", "game_id": game_id}), 201
+            return jsonify({"message": "Game added successfully", "game_id": game_id}), 201
     except Exception as e:
-        return jsonify({"error": f"MariaDB error: {str(e)}"}), 500
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 if __name__ == '__main__':
-    print("🚀 Starting GameVault Flask API server connected to MariaDB on http://127.0.0.1:5000 ...")
+    print("🚀 Starting GameVault Flask API server on http://127.0.0.1:5000 ...")
     app.run(host='0.0.0.0', port=5000, debug=True)
