@@ -52,10 +52,12 @@ GameVault is a full-stack, enterprise-grade digital distribution platform for vi
 
 ## 📚 Project Documentation Index
 
-Detailed architectural specifications, data dictionaries, DDL scripts, and analytical queries are housed in the [`docs/`](docs/) directory:
+Detailed architectural specifications, data dictionaries, DDL scripts, analytical queries, and full project reports are housed in the [`docs/`](docs/) directory:
 
 - 📖 **[Database Design & ER Model](docs/DATABASE_DESIGN.md)**: 12-table normalized entity structure (3NF), data dictionary, key business rules, and constraint logic.
 - 🛠️ **[SQL Specification & Analytics](docs/SQL_DOCUMENTATION.md)**: Full DDL scripts, database indexes, 7 views, 8 stored procedures, 6 deterministic functions, 7 automated triggers, and 40 analytical queries.
+- 📄 **[Comprehensive Project Report (PDF)](docs/GameVault_Project_Report.pdf)**: Complete academic/professional project report in PDF format.
+- 📝 **[Comprehensive Project Report (DOCX)](docs/GameVault_Project_Report.docx)**: Complete academic/professional project report in editable Word document format.
 
 ---
 
