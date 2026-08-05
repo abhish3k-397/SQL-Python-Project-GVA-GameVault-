@@ -24,6 +24,32 @@ GameVault is a full-stack, enterprise-grade digital distribution platform for vi
 
 ---
 
+## 🖼️ Application Screenshots
+
+### 1. Game Catalog & Discovery
+*Interactive game store featuring 50 AAA & Indie titles with official Steam CDN header artwork, discounts, and genre filtering.*
+![Game Store Catalog](docs/images/store_catalog.png)
+
+---
+
+### 2. Detailed Game View & Customer Reviews
+*Deep dive game modal with real-time price calculation, developer metadata, and user reviews.*
+![Game Details & Reviews](docs/images/game_details.png)
+
+---
+
+### 3. User Library & Account Isolation
+*Strict user data isolation showcasing personal game library, hours played, wishlist, and wallet balance.*
+![User Library & Profile](docs/images/user_library.png)
+
+---
+
+### 4. Dedicated Authentication Portal
+*Seamless login and registration portal with session state management.*
+![Login & Registration Portal](docs/images/login_page.png)
+
+---
+
 ## 📚 Project Documentation Index
 
 Detailed architectural specifications, data dictionaries, DDL scripts, and analytical queries are housed in the [`docs/`](docs/) directory:
